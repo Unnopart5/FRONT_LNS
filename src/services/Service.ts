@@ -4,18 +4,29 @@ import {ApiResponse} from '../models/Book'
 import { ResponseInstituciones } from "../models/Instituciones";
 import { ResponseNivelEducativo } from "../models/NivelEducativo";
 import { ResponseEstudiante } from "../models/Estudiante";
+import { StudentBookSave } from "../models/StudentBookSave";
 
 
   
-  export const getBook = async ( sku: string, serie:string): Promise<ApiResponse> => {
-    try {
-      const response = await axios.get<ApiResponse>(`${ENDPOINTS.GET_BOOK}?sku=${sku}&serie=${serie}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching book:", error);
-      throw error;
-    }
-  };
+    export const getBook = async ( serie: string): Promise<ApiResponse> => {
+      try {
+        const response = await axios.get<ApiResponse>(`${ENDPOINTS.GET_BOOK}?serie=${serie}`);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching book:", error);
+        throw error;
+      }
+    };
+
+    export const saveStudentBook = async (data: StudentBookSave): Promise<ApiResponse> => {
+      try {
+        const response = await axios.post<ApiResponse>(`${ENDPOINTS.SAVE_LIBRO_ESTUDIANTE}`, data);
+        return response.data; // Retorna la respuesta del servidor
+      } catch (error) {
+        console.error("Error saving student book:", error);
+        throw error; // Lanza el error para ser capturado por quien llame la función
+      }
+    };
 
     
   export const getUnitEducation = async (): Promise<ResponseInstituciones> => {
@@ -28,6 +39,7 @@ import { ResponseEstudiante } from "../models/Estudiante";
     }
   };
 
+  
 
   export const SEARCH_STUDENT = async (cedula:string): Promise<ResponseEstudiante> => {
     try {

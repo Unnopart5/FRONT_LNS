@@ -1,4 +1,4 @@
-interface Book {
+export interface Book {
 codigoproducto: string;
 sku: string;
 serie: string;

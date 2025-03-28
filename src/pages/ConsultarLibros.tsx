@@ -1,299 +1,226 @@
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, Typography, Box, Container, Button, TextField, Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel, InputAdornment } from "@mui/material";
-import SearchIcon from '@mui/icons-material/Search';  // Importamos el ícono de la lupa
-import { useSearchParams } from "react-router-dom";
-import HeaderPages from "../components/HeaderPages";
-import { ApiResponse } from "../models/Book";
-import { getBook, getUnitEducation, getNivelEducativo, SEARCH_STUDENT } from "../services/Service";
-import Grid from '@mui/material/Grid2';
-import { ResponseInstituciones } from "../models/Instituciones";
-import { ResponseNivelEducativo } from "../models/NivelEducativo";
-import { ResponseEstudiante } from "../models/Estudiante";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Container,
+  Button,
+  Grid,
+  FormControlLabel,
+  Divider,
+  Paper
+} from "@mui/material";
+import {
+  Save as SaveIcon,
+  School as SchoolIcon,
+  Person as PersonIcon,
+  Book as BookIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon
+} from "@mui/icons-material";
+import { Book } from '../models/Book';
+import { saveStudentBook } from "../services/Service";
 import { ToastContainer, toast } from 'react-toastify';
+import SearchBook from "../components/SearchBook";
+import StudentComponent from "../components/StudentComponent";
+import { StudentBookSave } from "../models/StudentBookSave";
+import 'react-toastify/dist/ReactToastify.css';
 
 const ConsultarLibros: React.FC = () => {
-  const [searchParams] = useSearchParams();
-
-  const [bookData, setBookData] = useState<ApiResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // States for additional search criteria
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [cedula, setCedula] = useState<string>('');
-  const [sku, setSku] = useState<string>('');
-  const [serie, setSerie] = useState<string>('');
   const [nombreEstudiante, setNombreEstudiante] = useState<string>('');
   const [unidadEducativa, setUnidadEducativa] = useState<string>('');
   const [ciclo, setCiclo] = useState<string>('');
   const [acceptData, setAcceptData] = useState<boolean>(false);
-  const [unidadesEducativas, setUnidadesEducativas] = useState<ResponseInstituciones | null>();
-  const [nivelEducativo, setNivelEducativo] = useState<ResponseNivelEducativo | null>();
-  const [estudiante, setEstudiante] = useState<ResponseEstudiante | null>();
-  const [cantidadLibros, setCantidadLibros] = useState<number>(1);
-  const [series, setSeries] = useState<string[]>([""]);
+  const [noExisteUniEdu, setNoExisteUniEdu] = useState<boolean>(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    fetchUnitEducation()
-    fetchNivelEducativo()
-  }, [])
+  const errores = [
+    { 
+      condicion: !acceptData, 
+      mensaje: "Debe aceptar los términos y condiciones",
+      icon: <WarningIcon color="warning" sx={{ mr: 1 }} />
+    },
+    { 
+      condicion: !nombreEstudiante.trim(), 
+      mensaje: "El nombre del estudiante es requerido",
+      icon: <PersonIcon color="error" sx={{ mr: 1 }} />
+    },
+    { 
+      condicion: !unidadEducativa || !ciclo, 
+      mensaje: "La unidad educativa y el ciclo son requeridos",
+      icon: <SchoolIcon color="error" sx={{ mr: 1 }} />
+    }
+  ];
 
+  const grabarlibroestudiante = async () => {
+    const error = errores.find(err => err.condicion);
+    if (error) {
+      toast.error(
+        <Box display="flex" alignItems="center">
+          {error.icon}
+          {error.mensaje}
+        </Box>, 
+        { position: "top-center" }
+      );
+      return false;
+    }
 
-  const fetchBook = async () => {
-    setLoading(true);
+    const nuevoestudiantelibro: StudentBookSave = {
+      codigolibro: selectedBook?.codigoproducto ?? "",
+      codigoestudiante: cedula,
+      periodo: selectedBook?.periodo ?? "",
+      ciclo: ciclo ?? "",
+      aceptaterminos: acceptData ? "Sí" : "No",
+      unidadeducativa: unidadEducativa ?? "",
+      nombreestudiante: nombreEstudiante,
+      noexisteunidadeducativa: noExisteUniEdu,
+      serie: selectedBook?.serie ?? ''
+    };
+
     try {
-      const data = await getBook(sku, serie);
-      setBookData(data);
-    } catch (err) {
-      setError("Error al obtener los datos del libro.");
-    } finally {
-      setLoading(false);
+      await saveStudentBook(nuevoestudiantelibro);
+      toast.success(
+        <Box display="flex" alignItems="center">
+          <CheckCircleIcon sx={{ mr: 1 }} />
+          {`Libro "${selectedBook?.nombre}" registrado para ${nombreEstudiante}`}
+        </Box>,
+        { position: "top-center" }
+      );
+      vaciarData();
+      setRefreshKey(prevKey => prevKey + 1);
+    } catch (error) {
+      toast.error(
+        <Box display="flex" alignItems="center">
+          <WarningIcon color="error" sx={{ mr: 1 }} />
+          Error al registrar el libro
+        </Box>,
+        { position: "top-center" }
+      );
     }
-  };
+  }
 
-  const fetchUnitEducation = async () => {
-    setLoading(true);
-    try {
-      const data = await getUnitEducation();
-      setUnidadesEducativas(data);
-    } catch (err) {
-      setError("Error al obtener los datos del libro.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNivelEducativo = async () => {
-    setLoading(true);
-    try {
-      const data = await getNivelEducativo();
-      setNivelEducativo(data);
-    } catch (err) {
-      setError("Error al obtener los datos del libro.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchestudiante = async () => {
-    const esValida = validarCedula(cedula);
-    if  (!esValida){
-      return toast.error("LA CEDULA INGRESADA NO ES VALIDA",{position: "top-center"});
-    }
-    try {
-      const data = await SEARCH_STUDENT(cedula);  
-      if(data.estado === 404 ){
-        setNombreEstudiante(data.estado !== 404 ? data.data[0].nombre : "");
-        setUnidadEducativa(data.estado !== 404 ? data.data[0].periodo : "")
-        setCiclo(data.estado !== 404 ? data.data[0].ciclo : "") 
-        return toast.warn("NO SE ENCONTRO ESTUDIANTE, INGRESE SUS DATOS",{position: "top-center"});
-      }
-      setEstudiante(data);
-    } catch (err) {
-      setError("Error al obtener los datos del libro.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addCountLibros = () => {
-    setCantidadLibros(prev => prev + 1);
-    setSeries([...series, ""]); // Agrega un nuevo campo vacío
-  };
-  
-  const removeCountLibros = () => {
-    if (cantidadLibros > 1) {
-      setCantidadLibros(prev => prev - 1);
-      setSeries(series.slice(0, -1)); // Elimina el último campo de la lista
-    }
-  };
-  
-  const handleSerieChange = (index:number, value:string) => {
-    const newSeries = [...series];
-    newSeries[index] = value;
-    setSeries(newSeries);
-  };
-
-  function validarCedula(cedula: string): boolean {
-    if (!/^\d{10}$/.test(cedula)) {
-        return false;
-    }
-    const primerDigito = parseInt(cedula.charAt(0));
-    if (primerDigito > 6) {
-        return false;
-    }
-    let suma = 0;
-    for (let i = 0; i < 9; i++) {
-        let digito = parseInt(cedula.charAt(i));
-        if (i % 2 === 0) { // Posiciones impares (0, 2, 4, 6, 8)
-            digito *= 2;
-            if (digito > 9) {
-                digito -= 9; // Si el producto es mayor a 9, se resta 9
-            }
-        }
-        suma += digito;
-    }
-    const digitoVerificador = (10 - (suma % 10)) % 10;
-
-    return digitoVerificador === parseInt(cedula.charAt(9));
-}
+  const vaciarData = () => {
+    setSelectedBook(null);
+    setCiclo('');
+    setCedula('');
+    setUnidadEducativa('');
+    setNombreEstudiante('');
+    setAcceptData(false);
+  }
 
   return (
-    <Container>
-      <ToastContainer />
-      <HeaderPages />
-      <Box display="flex" justifyContent="center" alignItems="center">
-        <Card sx={{ width: 600, textAlign: "center", p: 2, boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" fontWeight="bold" gutterBottom color="primary">
-              Registro de Texto
-            </Typography>
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <ToastContainer style={{ zIndex: 9999 }} />
+      
+      <Paper elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
+        <Box 
+          sx={{ 
+            backgroundColor: 'primary.main', 
+            color: 'primary.contrastText',
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <BookIcon sx={{ fontSize: 32, mr: 2 }} />
+          <Typography variant="h4" component="h1" fontWeight="bold">
+            Registro de Textos Escolares
+          </Typography>
+        </Box>
 
-            <Grid container spacing={2}>
-              <Grid size={12}>
-                <Typography variant="subtitle1" fontWeight="bold" color="primary">Cantidad Libros a registrar:</Typography>
-                <Button variant="contained" color="primary" size="small" onClick={addCountLibros}>
-                  <AddIcon />
-                </Button>
-                <Button variant="text" color="primary" >
-                  {cantidadLibros.toString()}
-                </Button>
-                <Button variant="contained" color="primary" size="small" onClick={removeCountLibros}>
-                  <RemoveIcon />
-                </Button>
-
-              </Grid>
-              {series.map((serie, index) => (
-                  <Grid size={12} key={index}  sx={{ display: "flex", alignItems: "center", gap: 2, justifyItems:'center' }}>
-                    <Typography variant="subtitle2" fontWeight="bold" color="primary">
-                      Codigo {index + 1}
-                    </Typography>
-                    <TextField
-                      label={`Serie del libro ${index + 1}`}
-                      variant="outlined"
-                      value={serie}
-                      onChange={(e) => handleSerieChange(index, e.target.value)}
-                      sx={{ mt: 2 }}
-                    />
-                  </Grid>
-                ))}
-              <Grid size={12}>
-                {loading && <Typography variant="body2" color="textSecondary" mt={2}>Cargando...</Typography>}
-                {error && <Typography variant="body2" color="error" mt={2}>{error}</Typography>}
-                {bookData && Array.isArray(bookData.data) && bookData.data.length > 0 && (
-                  <Box mt={2}>
-                    <Typography variant="body1" fontWeight="bold" color="primary">
-                      {bookData.data[0].titulo}
-                    </Typography>
-                  </Box>
-                )}
-
-              </Grid>
-              <Grid size={12}>
-                <Button variant="contained" color="primary" fullWidth onClick={fetchBook}> Buscar Libro</Button>
-              </Grid>
+        <CardContent>
+          <Grid container spacing={3}>
+            {/* Book Search Section */}
+            <Grid item xs={12}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <BookIcon color="primary" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="primary">
+                    Buscar Libro
+                  </Typography>
+                </Box>
+                <SearchBook 
+                  key={refreshKey}
+                  selectedBook={selectedBook} 
+                  setSelectedBook={setSelectedBook} 
+                />
+              </Paper>
             </Grid>
 
-
-
-            {/* Nueva sección de filtros de búsqueda */}
-            <Box mt={4}>
-              <Typography variant="h6" fontWeight="bold" color="primary">Buscar Estudiante</Typography>
-
-              {/* Número de cédula con ícono de lupa y botón */}
-              <Box display="flex" alignItems="center" sx={{ mt: 2 }}>
-                <TextField
-                  label="Número de Cédula"
-                  variant="outlined"
-                  fullWidth
-                  value={cedula}
-                  onChange={(e) => setCedula(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
+            {/* Student Information Section */}
+            <Grid item xs={12}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <PersonIcon color="primary" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="primary">
+                    Datos del Estudiante
+                  </Typography>
+                </Box>
+                <StudentComponent
+                  cedula={cedula}
+                  setCedula={setCedula}
+                  nombreEstudiante={nombreEstudiante}
+                  setNombreEstudiante={setNombreEstudiante}
+                  unidadEducativa={unidadEducativa}
+                  setUnidadEducativa={setUnidadEducativa}
+                  ciclo={ciclo}
+                  setCiclo={setCiclo}
+                  acceptData={acceptData}
+                  setAcceptData={setAcceptData}
+                  noExisteUniEdu={noExisteUniEdu}
+                  setNoExisteUniEdu={setNoExisteUniEdu}
+                  disableTerminoCondiciones={false}
+                  disabledNoUniEducativa={false}
                 />
-                <Button
-                  variant="contained"
-                  color="primary"
-                  sx={{ ml: 2 }}
-                  onClick={fetchestudiante}
-                >
-                  Buscar
-                </Button>
-              </Box>
+              </Paper>
+            </Grid>
 
-              {/* Nombre del estudiante */}
-              <TextField
-                label="Nombre del Estudiante"
-                variant="outlined"
-                fullWidth
-                value={nombreEstudiante}
-                onChange={(e) => setNombreEstudiante(e.target.value)}
-                sx={{ mt: 2 }}
-              />
-
-              {/* Unidad Educativa */}
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Unidad Educativa</InputLabel>
-                <Select
-                  value={unidadEducativa}
-                  onChange={(e) => setUnidadEducativa(e.target.value)}
-                  label="Unidad Educativa"
-                >
-                  <MenuItem value="">S/A</MenuItem>
-                  {unidadesEducativas?.data.map((item, index) => {
-                    return <MenuItem key={index} value={item.id}>{item.descripcion}</MenuItem>;
-                  })}
-                </Select>
-              </FormControl>
-
-              {/* Ciclo */}
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Ciclo</InputLabel>
-                <Select
-                  value={ciclo}
-                  onChange={(e) => setCiclo(e.target.value)}
-                  label="Ciclo"
-                >
-                  {nivelEducativo?.data.map((item, index) => {
-                    return <MenuItem key={index} value={item.id}>{item.descripcion}</MenuItem>;
-                  })}
-                  <MenuItem value="ciclo1">Ciclo 1</MenuItem>
-                  <MenuItem value="ciclo2">Ciclo 2</MenuItem>
-                  <MenuItem value="ciclo3">Ciclo 3</MenuItem>
-                </Select>
-              </FormControl>
-
-              {/* Aceptación de datos personales */}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={acceptData}
-                    onChange={(e) => setAcceptData(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="Acepto el uso de mis datos personales"
-                sx={{ mt: 2 }}
-              />
+            {/* Action Button */}
+            <Grid item xs={12}>
               <Button
                 variant="contained"
                 color="primary"
                 fullWidth
-                onClick={fetchestudiante}
-                sx={{ mt: 2 }}
+                size="large"
+                onClick={grabarlibroestudiante}
+                startIcon={<SaveIcon />}
+                sx={{
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  boxShadow: 2,
+                  '&:hover': {
+                    boxShadow: 4
+                  }
+                }}
               >
-                GRABAR
+                Registrar Libro
               </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+
+        {/* Info Footer */}
+        <Box 
+          sx={{ 
+            backgroundColor: 'grey.100',
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <InfoIcon color="info" sx={{ mr: 1 }} />
+          <Typography variant="body2" color="text.secondary">
+            Todos los campos son obligatorios para el registro
+          </Typography>
+        </Box>
+      </Paper>
     </Container>
   );
 };

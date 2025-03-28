@@ -4,8 +4,6 @@ export const ENDPOINTS = {
     GET_UnitEducation: `${API_BASE_URL}/LNS/lista-intituciones`,
     GET_LevelEducacion: `${API_BASE_URL}/LNS/lista-nivel-lectivo`,
     SEARCH_STUDENT: `${API_BASE_URL}/LNS/buscar-estudiante`,
-
-
-
+    SAVE_LIBRO_ESTUDIANTE: `${API_BASE_URL}/LNS/save-estudiante-libro`,
   };
   
