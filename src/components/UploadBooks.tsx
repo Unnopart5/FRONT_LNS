@@ -122,7 +122,7 @@ const UploadBooks: React.FC = () => {
       
       <Typography variant="body1" paragraph>
         Sube un archivo Excel con los datos de los libros (sku, serie, título, periodo).
-        El archivo puede contener hasta 820,000+ registros.
+        El tiempo de carga de los registros depende de la cantidad de registros en el archivo de Excel.
       </Typography>
 
       {!file && (

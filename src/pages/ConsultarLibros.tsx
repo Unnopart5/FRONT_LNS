@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -7,9 +7,9 @@ import {
   Container,
   Button,
   Grid,
-  FormControlLabel,
   Divider,
-  Paper
+  Paper,
+  CircularProgress
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -18,7 +18,9 @@ import {
   Book as BookIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  LocationOn as LocationIcon,
+  LocationOff as LocationOffIcon
 } from "@mui/icons-material";
 import { Book } from '../models/Book';
 import { saveStudentBook } from "../services/Service";
@@ -37,6 +39,56 @@ const ConsultarLibros: React.FC = () => {
   const [acceptData, setAcceptData] = useState<boolean>(false);
   const [noExisteUniEdu, setNoExisteUniEdu] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [locationEnabled, setLocationEnabled] = useState<boolean | null>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState<boolean>(false);
+
+  // Verificar estado de la geolocalización al cargar el componente
+  useEffect(() => {
+    checkGeolocationPermission();
+  }, []);
+
+  const checkGeolocationPermission = () => {
+    setIsLoadingLocation(true);
+    
+    if (!navigator.geolocation) {
+      setLocationEnabled(false);
+      setIsLoadingLocation(false);
+      return;
+    }
+
+    navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
+      setLocationEnabled(permissionStatus.state === 'granted');
+      setIsLoadingLocation(false);
+      
+      permissionStatus.onchange = () => {
+        setLocationEnabled(permissionStatus.state === 'granted');
+      };
+    }).catch(() => {
+      // Si el navegador no soporta permissions.query, intentamos obtener la ubicación directamente
+      requestLocation();
+    });
+  };
+
+  const requestLocation = () => {
+    setIsLoadingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(position.coords.latitude);
+        setLongitude(position.coords.longitude);
+        setLocationEnabled(true);
+        setIsLoadingLocation(false);
+      },
+      (error) => {
+        console.error("Error al obtener ubicación:", error);
+        setLocationEnabled(false);
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const errores = [
     { 
@@ -57,6 +109,18 @@ const ConsultarLibros: React.FC = () => {
   ];
 
   const grabarlibroestudiante = async () => {
+    // Verificar que tenemos ubicación antes de continuar
+    if (!locationEnabled || latitude === null || longitude === null) {
+      toast.error(
+        <Box display="flex" alignItems="center">
+          <WarningIcon color="error" sx={{ mr: 1 }} />
+          No se pudo obtener su ubicación. Por favor active la geolocalización.
+        </Box>, 
+        { position: "top-center" }
+      );
+      return false;
+    }
+
     const error = errores.find(err => err.condicion);
     if (error) {
       toast.error(
@@ -78,7 +142,9 @@ const ConsultarLibros: React.FC = () => {
       unidadeducativa: unidadEducativa ?? "",
       nombreestudiante: nombreEstudiante,
       noexisteunidadeducativa: noExisteUniEdu,
-      serie: selectedBook?.serie ?? ''
+      serie: selectedBook?.serie ?? '',
+      latitud: latitude?.toString() ?? '',
+      longitud: longitude?.toString() ?? ''
     };
 
     try {
@@ -110,6 +176,45 @@ const ConsultarLibros: React.FC = () => {
     setUnidadEducativa('');
     setNombreEstudiante('');
     setAcceptData(false);
+  }
+
+  if (isLoadingLocation) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <CircularProgress size={60} sx={{ mb: 3 }} />
+        <Typography variant="h6" color="textSecondary">
+          Verificando permisos de ubicación...
+        </Typography>
+      </Container>
+    );
+  }
+
+  if (locationEnabled === false) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+          <LocationOffIcon color="error" sx={{ fontSize: 80, mb: 3 }} />
+          <Typography variant="h4" component="h1" gutterBottom>
+            Ubicación Requerida
+          </Typography>
+          <Typography variant="body1" paragraph sx={{ mb: 4 }}>
+            Para continuar con el registro de libros, necesitamos acceder a tu ubicación.
+            Por favor, activa los permisos de geolocalización en tu navegador y verifica
+            que tu dispositivo tenga el GPS activado.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<LocationIcon />}
+            onClick={requestLocation}
+            sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+          >
+            Activar Ubicación
+          </Button>
+        </Paper>
+      </Container>
+    );
   }
 
   return (
@@ -177,6 +282,26 @@ const ConsultarLibros: React.FC = () => {
                   disableTerminoCondiciones={false}
                   disabledNoUniEducativa={false}
                 />
+              </Paper>
+            </Grid>
+
+            {/* Location Info */}
+            <Grid item xs={12}>
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <LocationIcon color="success" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="primary">
+                    Ubicación
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Ubicación activada correctamente
+                </Typography>
+                {latitude && longitude && (
+                  <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                    Latitud: {latitude.toFixed(6)}, Longitud: {longitude.toFixed(6)}
+                  </Typography>
+                )}
               </Paper>
             </Grid>
 

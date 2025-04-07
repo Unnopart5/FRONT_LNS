@@ -8,4 +8,7 @@ export  interface ReportBook {
     periodo :string;
     nivel_academico :string;
     fecharegistro :string;
+    latitud :string;
+    longitud :string;
+
 }

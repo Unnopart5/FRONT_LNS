@@ -8,4 +8,7 @@ export interface StudentBookSave {
     nombreestudiante: string;
     noexisteunidadeducativa:boolean;
     serie:string;
+    latitud:string;
+    longitud:string;
+
 }
