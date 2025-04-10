@@ -110,16 +110,16 @@ const ConsultarLibros: React.FC = () => {
 
   const grabarlibroestudiante = async () => {
     // Verificar que tenemos ubicación antes de continuar
-    if (!locationEnabled || latitude === null || longitude === null) {
-      toast.error(
-        <Box display="flex" alignItems="center">
-          <WarningIcon color="error" sx={{ mr: 1 }} />
-          No se pudo obtener su ubicación. Por favor active la geolocalización.
-        </Box>, 
-        { position: "top-center" }
-      );
-      return false;
-    }
+    // if (!locationEnabled || latitude === null || longitude === null) {
+    //   toast.error(
+    //     <Box display="flex" alignItems="center">
+    //       <WarningIcon color="error" sx={{ mr: 1 }} />
+    //       No se pudo obtener su ubicación. Por favor active la geolocalización.
+    //     </Box>, 
+    //     { position: "top-center" }
+    //   );
+    //   return false;
+    // }
 
     const error = errores.find(err => err.condicion);
     if (error) {
