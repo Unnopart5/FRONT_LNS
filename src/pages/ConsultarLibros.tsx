@@ -188,8 +188,8 @@ const ConsultarLibros: React.FC = () => {
       </Container>
     );
   }
-
-  if (locationEnabled === false) {
+  // locationEnabled === false
+  if (false) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper elevation={3} sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
