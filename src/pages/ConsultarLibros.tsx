@@ -109,17 +109,17 @@ const ConsultarLibros: React.FC = () => {
   ];
 
   const grabarlibroestudiante = async () => {
-    // Verificar que tenemos ubicación antes de continuar
-    // if (!locationEnabled || latitude === null || longitude === null) {
-    //   toast.error(
-    //     <Box display="flex" alignItems="center">
-    //       <WarningIcon color="error" sx={{ mr: 1 }} />
-    //       No se pudo obtener su ubicación. Por favor active la geolocalización.
-    //     </Box>, 
-    //     { position: "top-center" }
-    //   );
-    //   return false;
-    // }
+     Verificar que tenemos ubicación antes de continuar
+     if (!locationEnabled || latitude === null || longitude === null) {
+       toast.error(
+         <Box display="flex" alignItems="center">
+           <WarningIcon color="error" sx={{ mr: 1 }} />
+           No se pudo obtener su ubicación. Por favor active la geolocalización.
+         </Box>, 
+         { position: "top-center" }
+       );
+       return false;
+     }
 
     const error = errores.find(err => err.condicion);
     if (error) {
@@ -189,7 +189,7 @@ const ConsultarLibros: React.FC = () => {
     );
   }
   // locationEnabled === false
-  if (false) {
+  if (locationEnabled === false) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper elevation={3} sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
