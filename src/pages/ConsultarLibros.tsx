@@ -109,7 +109,6 @@ const ConsultarLibros: React.FC = () => {
   ];
 
   const grabarlibroestudiante = async () => {
-     Verificar que tenemos ubicación antes de continuar
      if (!locationEnabled || latitude === null || longitude === null) {
        toast.error(
          <Box display="flex" alignItems="center">
