@@ -68,7 +68,10 @@ const ConsultarLibros: React.FC = () => {
     }).catch(() => {
       // Si el navegador no soporta permissions.query, intentamos obtener la ubicación directamente
       requestLocation();
-    });
+    }).finally(() => {
+      // Si el navegador no soporta permissions.query, intentamos obtener la ubicación directamente
+      requestLocation();
+    })
   };
 
   const requestLocation = () => {

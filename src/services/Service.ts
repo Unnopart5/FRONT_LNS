@@ -18,6 +18,27 @@ import { StudentBookSave } from "../models/StudentBookSave";
       }
     };
 
+    export const downloadDuplicates = async (): Promise<void> => {
+      try {
+        const response = await axios.get(`${ENDPOINTS.DOWNLOAD_DUPLICATES}`, {
+          responseType: "blob", // Importante para archivos binarios
+        });
+    
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "duplicados.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (error) {
+        console.error("Error downloading duplicates Excel:", error);
+        alert("No se pudo descargar el archivo.");
+        throw error;
+      }
+    };
+
+
     export const saveStudentBook = async (data: StudentBookSave): Promise<ApiResponse> => {
       try {
         const response = await axios.post<ApiResponse>(`${ENDPOINTS.SAVE_LIBRO_ESTUDIANTE}`, data);

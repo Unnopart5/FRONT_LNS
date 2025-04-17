@@ -11,7 +11,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import UploadBooks from '../components/UploadBooks';
 import ReportRegisterBook from '../components/ReportRegisterBook';
+import { downloadDuplicates } from '../services/Service';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://tuservicio.com/api";
+
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;

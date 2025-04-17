@@ -14,6 +14,7 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
+import { downloadDuplicates } from '../services/Service';
 
 interface BookData {
   sku: string;
@@ -93,7 +94,7 @@ const UploadBooks: React.FC = () => {
       for (let i = 0; i < jsonData.length; i += CHUNK_SIZE) {
         const chunk = jsonData.slice(i, i + CHUNK_SIZE);
         const chunkNumber = Math.floor(i / CHUNK_SIZE);
-        
+
         await processChunk(chunk, chunkNumber, totalChunks);
       }
 
@@ -119,7 +120,7 @@ const UploadBooks: React.FC = () => {
       <Typography variant="h5" gutterBottom>
         Subida Masiva de Libros
       </Typography>
-      
+
       <Typography variant="body1" paragraph>
         Sube un archivo Excel con los datos de los libros (sku, serie, título, periodo).
         El tiempo de carga de los registros depende de la cantidad de registros en el archivo de Excel.
@@ -210,6 +211,15 @@ const UploadBooks: React.FC = () => {
           </Typography>
           <Button variant="outlined" size="small" onClick={resetForm} sx={{ ml: 'auto' }}>
             Subir otro archivo
+          </Button>
+          <Button
+            variant="outlined"
+            color="secondary"
+            size="small"
+            onClick={downloadDuplicates}
+            sx={{ ml: 'auto' }}
+          >
+            Descargar repetidos de la última hora
           </Button>
         </Box>
       )}
