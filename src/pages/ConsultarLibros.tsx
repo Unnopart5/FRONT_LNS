@@ -248,7 +248,7 @@ const ConsultarLibros: React.FC = () => {
                 <Box display="flex" alignItems="center" mb={2}>
                   <BookIcon color="primary" sx={{ mr: 1 }} />
                   <Typography variant="h6" color="primary">
-                    Buscar Libro
+                    Digite el código del libro
                   </Typography>
                 </Box>
                 <SearchBook 

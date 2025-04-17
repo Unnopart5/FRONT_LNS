@@ -13,7 +13,6 @@ interface SearchBookProps {
 const SearchBook: React.FC<SearchBookProps> = ({ selectedBook, setSelectedBook }) => {
   const [inputValue, setInputValue] = useState(''); // Estado para manejar el valor del input
 
-  // Función debounced para evitar múltiples llamadas seguidas
   const fetchBooks = useCallback(
     debounce(async (inputValue: string, callback: (options: any[]) => void) => {
       if (inputValue.trim().length < 5) { // 🔥 Busca desde el primer carácter
@@ -22,10 +21,7 @@ const SearchBook: React.FC<SearchBookProps> = ({ selectedBook, setSelectedBook }
       }
 
       try {
-        console.log("entra al buscar");
         const response: ApiResponse = await getBook(inputValue);
-        console.log("Respuesta de la API:", response);
-
         if (response.estado === 200 && Array.isArray(response.data)) {
           const formattedOptions = response.data.map((book: Book) => ({
             value: book.codigoproducto,
@@ -76,8 +72,8 @@ const SearchBook: React.FC<SearchBookProps> = ({ selectedBook, setSelectedBook }
       <AsyncSelect
         loadOptions={loadOptions}
         defaultOptions
-        placeholder="BUSCAR LIBRO..."
-        noOptionsMessage={() => "NO SE ENCONTRARON LIBROS"}
+        placeholder="Digitar el código del libro..."
+        noOptionsMessage={() => "NO SE ENCONTRARON CÓDIGOS RELACIONADOS"}
         isClearable
         getOptionValue={(option) => option.value}
         onChange={(selectedOption) => setSelectedBook(selectedOption?.bookData || null)}
