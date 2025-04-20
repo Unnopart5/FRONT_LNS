@@ -103,6 +103,7 @@ const ReportRegisterBook: React.FC = () => {
     // Preparar los datos para Excel
     const dataForExcel = filteredData.map(item => ({
       'Producto': item.nombre_producto,
+      'Sku': item.sku,
       'Serie': item.serie,
       'Cédula': item.cedula,
       'Estudiante': item.estudiante,
