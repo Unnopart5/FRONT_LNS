@@ -159,7 +159,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
   // Effects
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, cedula, setCedula]);
 
   useEffect(() => {
     if (cedula && cedula.length === 10) {

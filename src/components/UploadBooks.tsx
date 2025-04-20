@@ -50,7 +50,6 @@ const UploadBooks: React.FC = () => {
   });
 
   const processChunk = async (chunk: BookData[], chunkNumber: number, totalChunks: number) => {
-    console.log(chunk)
     try {
       const response = await fetch(`${API_BASE_URL}/LNS/upload-book-news`, {
         method: 'POST',
