@@ -17,8 +17,8 @@ import {
 } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import { getUnitEducation, getNivelEducativo, SEARCH_STUDENT } from "../services/Service";
-import {  ResponseEstudiante } from "../models/Estudiante";
-import { ResponseInstituciones  } from "../models/Instituciones";
+import { ResponseEstudiante } from "../models/Estudiante";
+import { ResponseInstituciones } from "../models/Instituciones";
 import { ResponseNivelEducativo } from "../models/NivelEducativo";
 import { toast } from 'react-toastify';
 import { validarCedula } from "../helpers/ValidarCedula";
@@ -92,14 +92,14 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
     try {
       setLoading(true);
       const response = await SEARCH_STUDENT(cedula);
-      
+
       if (isValidStudentResponse(response)) {
         updateStudentData(response.data[0]);
         handleStudentFound();
       } else {
         handleStudentNotFound();
       }
-      
+
       setEstudiante(response);
     } catch (err) {
       handleError("Error al obtener datos del estudiante", err);
@@ -110,9 +110,9 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
 
   // Helper functions
   const isValidStudentResponse = (response: any): boolean => {
-    return response?.estado === 202 && 
-           Array.isArray(response.data) && 
-           response.data.length > 0;
+    return response?.estado === 202 &&
+      Array.isArray(response.data) &&
+      response.data.length > 0;
   };
 
   const resetStudentData = () => {
@@ -138,8 +138,8 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
     resetStudentData();
     setIsCheckboxDisabled(false);
     setIsCheckboxDisabledUnitAcad(false);
-    toast.warn("NO SE ENCONTRÓ ESTUDIANTE, INGRESE SUS DATOS", { 
-      position: "top-center" 
+    toast.warn("NO SE ENCONTRÓ ESTUDIANTE, INGRESE SUS DATOS", {
+      position: "top-center"
     });
   };
 
@@ -170,7 +170,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
   return (
     <Box mt={4}>
       <Typography variant="h6" fontWeight="bold" color="primary">
-         Ingresé el número de cédula del estudiante
+        Ingresé el número de cédula del estudiante
       </Typography>
 
       <Box display="flex" alignItems="center" sx={{ mt: 2 }}>
@@ -219,7 +219,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
             color="primary"
           />
         }
-        label="UNIDAD EDUCATIVA NO ENCONTRADA"
+        label="Si no encontraste tu unidad educativa, haz clic aquí y regístrala en el casillero."
         sx={{ mt: 2 }}
       />
 
@@ -236,21 +236,20 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
       ) : (
         <FormControl fullWidth sx={{ mt: 2 }} disabled={isCheckboxDisabled}>
           <Autocomplete
-  fullWidth
-  sx={{ mt: 2 }}
-  disabled={isCheckboxDisabled}
-  options={unidadesEducativas?.data || []}
-  getOptionLabel={(option: any) => option.descripcion || ''}
-  value={
-    unidadesEducativas?.data.find((item: any) => item.id === unidadEducativa) || null
-  }
-  onChange={(_, newValue) => {
-    setUnidadEducativa(newValue ? newValue.id.toString() : '');
-  }}
-  renderInput={(params) => (
-    <TextField {...params} label="Unidad Educativa" />
-  )}
-/>
+            fullWidth
+            disabled={isCheckboxDisabled}
+            options={unidadesEducativas?.data || []}
+            getOptionLabel={(option: any) => option.descripcion || ''}
+            value={
+              unidadesEducativas?.data.find((item: any) => item.id === unidadEducativa) || null
+            }
+            onChange={(_, newValue) => {
+              setUnidadEducativa(newValue ? newValue.id.toString() : '');
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="Unidad Educativa" />
+            )}
+          />
         </FormControl>
       )}
 
@@ -261,7 +260,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
           onChange={(e) => setCiclo(e.target.value)}
           label="Ciclo"
         >
-          {nivelEducativo?.data.map((item:any) => (
+          {nivelEducativo?.data.map((item: any) => (
             <MenuItem key={item.id} value={item.id}>
               {item.descripcion}
             </MenuItem>
