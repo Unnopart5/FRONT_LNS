@@ -169,7 +169,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
   return (
     <Box mt={4}>
       <Typography variant="h6" fontWeight="bold" color="primary">
-        Buscar Estudiante
+         Ingresé la cédula del estudiante
       </Typography>
 
       <Box display="flex" alignItems="center" sx={{ mt: 2 }}>
