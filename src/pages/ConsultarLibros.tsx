@@ -111,7 +111,7 @@ const ConsultarLibros: React.FC = () => {
     },
     { 
       condicion: !selectedBook, 
-      mensaje: "Debe escoger un libro.",
+      mensaje: "Falta que ingresé el código.",
       icon: <SchoolIcon color="error" sx={{ mr: 1 }} />
     }
   ];
