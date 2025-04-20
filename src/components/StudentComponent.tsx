@@ -12,7 +12,8 @@ import {
   InputLabel,
   Checkbox,
   FormControlLabel,
-  InputAdornment
+  InputAdornment,
+  Autocomplete
 } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
 import { getUnitEducation, getNivelEducativo, SEARCH_STUDENT } from "../services/Service";
@@ -234,19 +235,22 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
         />
       ) : (
         <FormControl fullWidth sx={{ mt: 2 }} disabled={isCheckboxDisabled}>
-          <InputLabel>Unidad Educativa</InputLabel>
-          <Select
-            value={unidadEducativa}
-            onChange={(e) => setUnidadEducativa(e.target.value)}
-            label="Unidad Educativa"
-          >
-            <MenuItem value="">S/A</MenuItem>
-            {unidadesEducativas?.data.map((item:any) => (
-              <MenuItem key={item.id} value={item.id}>
-                {item.descripcion}
-              </MenuItem>
-            ))}
-          </Select>
+          <Autocomplete
+  fullWidth
+  sx={{ mt: 2 }}
+  disabled={isCheckboxDisabled}
+  options={unidadesEducativas?.data || []}
+  getOptionLabel={(option: any) => option.descripcion || ''}
+  value={
+    unidadesEducativas?.data.find((item: any) => item.id === unidadEducativa) || null
+  }
+  onChange={(_, newValue) => {
+    setUnidadEducativa(newValue ? newValue.id.toString() : '');
+  }}
+  renderInput={(params) => (
+    <TextField {...params} label="Unidad Educativa" />
+  )}
+/>
         </FormControl>
       )}
 
