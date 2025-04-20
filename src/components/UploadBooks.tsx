@@ -217,7 +217,7 @@ const UploadBooks: React.FC = () => {
             color="secondary"
             size="small"
             onClick={downloadDuplicates}
-            sx={{ ml: 'auto' }}
+            sx={{ ml: 'auto', display:'none' }}
           >
             Descargar repetidos de la última hora
           </Button>
