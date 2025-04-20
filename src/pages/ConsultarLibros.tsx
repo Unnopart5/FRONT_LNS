@@ -108,6 +108,11 @@ const ConsultarLibros: React.FC = () => {
       condicion: !unidadEducativa || !ciclo, 
       mensaje: "La unidad educativa y el ciclo son requeridos",
       icon: <SchoolIcon color="error" sx={{ mr: 1 }} />
+    },
+    { 
+      condicion: !selectedBook, 
+      mensaje: "Debe escoger un libro.",
+      icon: <SchoolIcon color="error" sx={{ mr: 1 }} />
     }
   ];
 
