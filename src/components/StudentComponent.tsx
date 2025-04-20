@@ -219,7 +219,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
             color="primary"
           />
         }
-        label="Si no encontraste tu unidad educativa, haz clic aquí y regístrala en el casillero."
+        label="No encontraste tu Unidad Educativa?, haz clic aquí y regístrala en el casillero"
         sx={{ mt: 2 }}
       />
 
