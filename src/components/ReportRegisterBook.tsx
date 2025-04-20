@@ -302,6 +302,7 @@ const ReportRegisterBook: React.FC = () => {
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                   <TableCell>Producto</TableCell>
+                  <TableCell>Sku</TableCell>
                   <TableCell>Serie</TableCell>
                   <TableCell>Cédula</TableCell>
                   <TableCell>Estudiante</TableCell>
@@ -318,6 +319,7 @@ const ReportRegisterBook: React.FC = () => {
                   filteredData.map((row) => (
                     <TableRow key={row.codigo}>
                       <TableCell>{row.nombre_producto}</TableCell>
+                      <TableCell>{row.sku}</TableCell>
                       <TableCell>{row.serie}</TableCell>
                       <TableCell>{row.cedula}</TableCell>
                       <TableCell>{row.estudiante}</TableCell>

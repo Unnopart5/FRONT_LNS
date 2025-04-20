@@ -1,6 +1,7 @@
 export  interface ReportBook {
     codigo :number;
     nombre_producto :string;
+    sku :string;
     serie :string;
     cedula :string;
     estudiante :string;
@@ -10,5 +11,4 @@ export  interface ReportBook {
     fecharegistro :string;
     latitud :string;
     longitud :string;
-
 }
