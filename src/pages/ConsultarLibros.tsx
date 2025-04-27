@@ -43,8 +43,8 @@ const ConsultarLibros: React.FC = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState<boolean>(false);
+  const [newKey, setNewKey] = useState<number>(1);
 
-  // Verificar estado de la geolocalización al cargar el componente
   useEffect(() => {
     checkGeolocationPermission();
   }, []);
@@ -156,10 +156,10 @@ const ConsultarLibros: React.FC = () => {
 
     try {
       await saveStudentBook(nuevoestudiantelibro);
+      setNewKey(Date.now() * Math.random());
       toast.success(
         <Box display="flex" alignItems="center">
-          <CheckCircleIcon sx={{ mr: 1 }} />
-          {`Libro "${selectedBook?.nombre}" registrado para ${nombreEstudiante}`}
+          {`Libro "${selectedBook?.nombre}" registrado correctamente`}
         </Box>,
         { position: "top-center" }
       );
@@ -274,6 +274,7 @@ const ConsultarLibros: React.FC = () => {
                   </Typography>
                 </Box>
                 <StudentComponent
+                  key={newKey}
                   cedula={cedula}
                   setCedula={setCedula}
                   nombreEstudiante={nombreEstudiante}
@@ -291,9 +292,7 @@ const ConsultarLibros: React.FC = () => {
                 />
               </Paper>
             </Grid>
-
-            {/* Location Info */}
-            <Grid item xs={12}>
+            { !nombreEstudiante &&  <Grid item xs={12}>
               <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
                 <Box display="flex" alignItems="center" mb={1}>
                   <LocationIcon color="success" sx={{ mr: 1 }} />
@@ -310,7 +309,8 @@ const ConsultarLibros: React.FC = () => {
                   </Typography>
                 )}
               </Paper>
-            </Grid>
+            </Grid>}
+           
 
             {/* Action Button */}
             <Grid item xs={12}>

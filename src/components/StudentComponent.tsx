@@ -1,27 +1,48 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
-  Card,
-  CardContent,
-  Typography,
   Box,
+  Typography,
   Button,
   TextField,
-  Select,
-  MenuItem,
+  InputAdornment,
+  Alert,
+  Collapse,
+  IconButton,
   FormControl,
   InputLabel,
-  Checkbox,
+  Select,
+  MenuItem,
   FormControlLabel,
-  InputAdornment,
+  Checkbox,
   Autocomplete
 } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import { getUnitEducation, getNivelEducativo, SEARCH_STUDENT } from "../services/Service";
-import { ResponseEstudiante } from "../models/Estudiante";
-import { ResponseInstituciones } from "../models/Instituciones";
-import { ResponseNivelEducativo } from "../models/NivelEducativo";
 import { toast } from 'react-toastify';
 import { validarCedula } from "../helpers/ValidarCedula";
+
+// Interfaces para los tipos de datos
+interface Institucion {
+  id: number;
+  descripcion: string;
+}
+
+interface NivelEducativo {
+  id: number | string;
+  descripcion: string;
+}
+
+interface Estudiante {
+  nombre: string;
+  periodo: string;
+  ciclo: string;
+}
+
+interface ApiResponse<T> {
+  estado: number;
+  data: T[];
+}
 
 interface StudentComponentProps {
   cedula: string;
@@ -38,6 +59,7 @@ interface StudentComponentProps {
   setNoExisteUniEdu: React.Dispatch<React.SetStateAction<boolean>>;
   disabledNoUniEducativa?: boolean;
   disableTerminoCondiciones?: boolean;
+  onStudentFound?: () => void;
 }
 
 const StudentComponent: React.FC<StudentComponentProps> = ({
@@ -55,123 +77,119 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
   setNoExisteUniEdu,
   disabledNoUniEducativa = false,
   disableTerminoCondiciones = false,
+  onStudentFound,
 }) => {
-  // State management
+  // Estados
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isCheckboxDisabled, setIsCheckboxDisabled] = useState<boolean>(false);
-  const [isCheckboxDisabledUnitAcad, setIsCheckboxDisabledUnitAcad] = useState<boolean>(false);
-  const [unidadesEducativas, setUnidadesEducativas] = useState<ResponseInstituciones | null>(null);
-  const [nivelEducativo, setNivelEducativo] = useState<ResponseNivelEducativo | null>(null);
-  const [estudiante, setEstudiante] = useState<ResponseEstudiante | null>(null);
+  const [unidadesEducativas, setUnidadesEducativas] = useState<Institucion[]>([]);
+  const [nivelEducativo, setNivelEducativo] = useState<NivelEducativo[]>([]);
+  const [studentFound, setStudentFound] = useState<boolean>(false);
+  const [showAlert, setShowAlert] = useState<boolean>(false);
 
-  // Data fetching functions
-  const fetchData = useCallback(async () => {
+  // Carga datos institucionales
+  const fetchInstitutionalData = useCallback(async (): Promise<void> => {
     try {
-      setLoading(true);
-      const [unitData, nivelData] = await Promise.all([
+      const [unitData, nivelData] = await Promise.all<[
+        Promise<ApiResponse<Institucion>>,
+        Promise<ApiResponse<NivelEducativo>>
+      ]>([
         getUnitEducation(),
         getNivelEducativo()
       ]);
-      setUnidadesEducativas(unitData);
-      setNivelEducativo(nivelData);
-    } catch (err) {
-      handleError("Error al obtener datos de instituciones educativas", err);
-    } finally {
-      setLoading(false);
+      
+      setUnidadesEducativas(unitData?.data || []);
+      setNivelEducativo(nivelData?.data || []);
+    } catch (error) {
+      toast.error("Error al cargar datos institucionales");
+      console.error("Error fetching institutional data:", error);
     }
   }, []);
 
-  const fetchStudentData = useCallback(async () => {
+  // Busca estudiante
+  const fetchStudentData = useCallback(async (): Promise<void> => {
     if (!validarCedula(cedula)) {
-      toast.error("LA CÉDULA INGRESADA NO ES VÁLIDA", { position: "top-center" });
-      resetStudentData();
+      toast.error("CÉDULA INVÁLIDA");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await SEARCH_STUDENT(cedula);
+      const response: ApiResponse<Estudiante> = await SEARCH_STUDENT(cedula);
 
-      if (isValidStudentResponse(response)) {
-        updateStudentData(response.data[0]);
-        handleStudentFound();
+      if (response?.estado === 202 && response.data?.length > 0) {
+        const student = response.data[0];
+        setNombreEstudiante(student.nombre || "");
+        setUnidadEducativa(student.periodo || "");
+        setCiclo(student.ciclo || "");
+        setStudentFound(true);
+        setShowAlert(true);
+        setAcceptData(true);
+        setNoExisteUniEdu(false);
+        onStudentFound?.();
       } else {
-        handleStudentNotFound();
+        toast.warn("Estudiante no encontrado. Complete los datos manualmente.");
+        setStudentFound(false);
       }
-
-      setEstudiante(response);
-    } catch (err) {
-      handleError("Error al obtener datos del estudiante", err);
+    } catch (error) {
+      toast.error("Error al buscar estudiante");
+      console.error("Error fetching student data:", error);
     } finally {
       setLoading(false);
     }
-  }, [cedula]);
+  }, [
+    cedula, 
+    setNombreEstudiante, 
+    setUnidadEducativa, 
+    setCiclo, 
+    setAcceptData, 
+    setNoExisteUniEdu, 
+    onStudentFound
+  ]);
 
-  // Helper functions
-  const isValidStudentResponse = (response: any): boolean => {
-    return response?.estado === 202 &&
-      Array.isArray(response.data) &&
-      response.data.length > 0;
+  // Manejador de cambio de cédula
+  const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setCedula(value);
   };
 
-  const resetStudentData = () => {
+  // Reinicia búsqueda
+  const handleNewSearch = (): void => {
+    setCedula("");
     setNombreEstudiante("");
     setUnidadEducativa("");
     setCiclo("");
+    setAcceptData(false);
+    setStudentFound(false);
   };
 
-  const updateStudentData = (studentData: any) => {
-    setNombreEstudiante(studentData.nombre || "");
-    setUnidadEducativa(studentData.periodo || "");
-    setCiclo(studentData.ciclo || "");
-  };
-
-  const handleStudentFound = () => {
-    setIsCheckboxDisabled(true);
-    setIsCheckboxDisabledUnitAcad(true);
-    setAcceptData(true);
-    setNoExisteUniEdu(false);
-  };
-
-  const handleStudentNotFound = () => {
-    resetStudentData();
-    setIsCheckboxDisabled(false);
-    setIsCheckboxDisabledUnitAcad(false);
-    toast.warn("NO SE ENCONTRÓ ESTUDIANTE, INGRESE SUS DATOS", {
-      position: "top-center"
-    });
-  };
-
-  const handleError = (message: string, error: any) => {
-    console.error(message, error);
-    setError(message);
-    toast.error(message, { position: "top-center" });
-  };
-
-  const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (/^\d*$/.test(value) && value.length <= 10) {
-      setCedula(value);
-    }
-  };
-
-  // Effects
+  // Efecto para carga inicial
   useEffect(() => {
-    fetchData();
-  }, [fetchData, cedula, setCedula]);
-
-  useEffect(() => {
-    if (cedula && cedula.length === 10) {
-      fetchStudentData();
-    }
-  }, [cedula, fetchStudentData]);
+    fetchInstitutionalData();
+  }, [fetchInstitutionalData]);
 
   return (
     <Box mt={4}>
       <Typography variant="h6" fontWeight="bold" color="primary">
-        Ingresé el número de cédula del estudiante
+        Datos del Estudiante
       </Typography>
+
+      <Collapse in={showAlert && studentFound}>
+        <Alert
+          severity="success"
+          action={
+            <IconButton
+              size="small"
+              onClick={() => setShowAlert(false)}
+              aria-label="cerrar-alerta"
+            >
+              <CloseIcon fontSize="inherit" />
+            </IconButton>
+          }
+          sx={{ mb: 2, mt: 2 }}
+        >
+          Estudiante encontrado: {nombreEstudiante}
+        </Alert>
+      </Collapse>
 
       <Box display="flex" alignItems="center" sx={{ mt: 2 }}>
         <TextField
@@ -180,106 +198,149 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
           fullWidth
           value={cedula}
           onChange={handleCedulaChange}
-          inputProps={{ maxLength: 10 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon />
+                <SearchIcon color="action" />
               </InputAdornment>
             ),
+            inputProps: {
+              maxLength: 10,
+              inputMode: 'numeric',
+              pattern: '[0-9]*',
+              'aria-label': 'Ingrese número de cédula'
+            },
           }}
+          disabled={studentFound}
+          autoComplete="off"
         />
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ ml: 2 }}
-          onClick={fetchStudentData}
-          disabled={loading}
-        >
-          {loading ? "Buscando..." : "Buscar"}
-        </Button>
+        {studentFound ? (
+          <Button
+            variant="outlined"
+            color="primary"
+            sx={{ ml: 2, height: '56px' }}
+            onClick={handleNewSearch}
+            aria-label="cambiar-estudiante"
+          >
+            Cambiar
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ ml: 2, height: '56px' }}
+            onClick={fetchStudentData}
+            disabled={loading || cedula.length !== 10}
+            aria-label="buscar-estudiante"
+          >
+            {loading ? "Buscando..." : "Buscar"}
+          </Button>
+        )}
       </Box>
 
-      <TextField
-        disabled={isCheckboxDisabled}
-        label="Nombre del Estudiante"
-        variant="outlined"
-        fullWidth
-        value={nombreEstudiante}
-        onChange={(e) => setNombreEstudiante(e.target.value.toUpperCase())}
-        sx={{ mt: 2 }}
-      />
-
-      <FormControlLabel
-        disabled={isCheckboxDisabledUnitAcad || disabledNoUniEducativa}
-        control={
-          <Checkbox
-            checked={noExisteUniEdu}
-            onChange={(e) => setNoExisteUniEdu(e.target.checked)}
-            color="primary"
-          />
-        }
-        label="No encontraste tu Unidad Educativa?, haz clic aquí y regístrala en el casillero"
-        sx={{ mt: 2 }}
-      />
-
-      {noExisteUniEdu ? (
-        <TextField
-          label="NOMBRE DE LA INSTITUCIÓN"
-          variant="outlined"
-          fullWidth
-          value={unidadEducativa}
-          onChange={(e) => setUnidadEducativa(e.target.value.toUpperCase())}
-          sx={{ mt: 2 }}
-          disabled={disabledNoUniEducativa}
-        />
-      ) : (
-        <FormControl fullWidth sx={{ mt: 2 }} disabled={isCheckboxDisabled}>
-          <Autocomplete
+      <Collapse in={!studentFound || !showAlert}>
+        <Box>
+          <TextField
+            label="Nombre del Estudiante"
+            variant="outlined"
             fullWidth
-            disabled={isCheckboxDisabled}
-            options={unidadesEducativas?.data || []}
-            getOptionLabel={(option: any) => option.descripcion || ''}
-            value={
-              unidadesEducativas?.data.find((item: any) => item.id === unidadEducativa) || null
+            value={nombreEstudiante}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+              setNombreEstudiante(e.target.value.toUpperCase())
             }
-            onChange={(_, newValue) => {
-              setUnidadEducativa(newValue ? newValue.id.toString() : '');
-            }}
-            renderInput={(params) => (
-              <TextField {...params} label="Unidad Educativa" />
-            )}
+            sx={{ mt: 2 }}
+            disabled={studentFound}
+            aria-label="nombre-estudiante"
           />
-        </FormControl>
-      )}
 
-      <FormControl fullWidth sx={{ mt: 2 }} disabled={isCheckboxDisabled}>
-        <InputLabel>Ciclo</InputLabel>
-        <Select
-          value={ciclo}
-          onChange={(e) => setCiclo(e.target.value)}
-          label="Ciclo"
-        >
-          {nivelEducativo?.data.map((item: any) => (
-            <MenuItem key={item.id} value={item.id}>
-              {item.descripcion}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <FormControlLabel
-        disabled={isCheckboxDisabled || disableTerminoCondiciones}
-        control={
-          <Checkbox
-            checked={acceptData}
-            onChange={(e) => setAcceptData(e.target.checked)}
-            color="primary"
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={noExisteUniEdu}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setNoExisteUniEdu(e.target.checked)
+                }
+                color="primary"
+                disabled={studentFound || disabledNoUniEducativa}
+              />
+            }
+            label="No encontré mi Unidad Educativa"
+            sx={{ mt: 2, display: 'block' }}
           />
-        }
-        label="Acepto el uso de mis datos personales"
-        sx={{ mt: 2 }}
-      />
+
+          {noExisteUniEdu ? (
+            <TextField
+              label="Nombre de la Institución"
+              variant="outlined"
+              fullWidth
+              value={unidadEducativa}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                setUnidadEducativa(e.target.value.toUpperCase())
+              }
+              sx={{ mt: 2 }}
+              disabled={studentFound || disabledNoUniEducativa}
+              aria-label="nombre-institucion"
+            />
+          ) : (
+            <Autocomplete
+              options={unidadesEducativas}
+              getOptionLabel={(option: Institucion) => option.descripcion || ''}
+              value={unidadesEducativas.find((item: Institucion) => 
+                item.id.toString() === unidadEducativa) || null}
+              onChange={(
+                _: React.SyntheticEvent, 
+                newValue: Institucion | null
+              ) => {
+                setUnidadEducativa(newValue?.id?.toString() || '');
+              }}
+              renderInput={(params) => (
+                <TextField 
+                  {...params} 
+                  label="Unidad Educativa" 
+                  sx={{ mt: 2 }} 
+                />
+              )}
+              disabled={studentFound}
+              fullWidth
+              aria-label="unidad-educativa"
+            />
+          )}
+
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Ciclo/Nivel</InputLabel>
+            <Select
+              value={ciclo}
+              onChange={(e: any) => 
+                setCiclo(e.target.value as string)
+              }
+              label="Ciclo/Nivel"
+              disabled={studentFound}
+              aria-label="ciclo-nivel"
+            >
+              {nivelEducativo.map((item: NivelEducativo) => (
+                <MenuItem key={item.id} value={item.id}>
+                  {item.descripcion}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={acceptData}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                  setAcceptData(e.target.checked)
+                }
+                color="primary"
+                disabled={studentFound || disableTerminoCondiciones}
+              />
+            }
+            label="Acepto el uso de mis datos personales"
+            sx={{ mt: 2, display: 'block' }}
+          />
+        </Box>
+      </Collapse>
     </Box>
   );
 };

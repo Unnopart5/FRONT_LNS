@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import AsyncSelect from 'react-select/async';
-import debounce from 'lodash/debounce';
 import { getBook } from '../services/Service';
 import { ApiResponse, Book } from '../models/Book';
 import Grid from '@mui/material/Grid2';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
 
 interface SearchBookProps {
   selectedBook: Book | null;
@@ -11,77 +12,68 @@ interface SearchBookProps {
 }
 
 const SearchBook: React.FC<SearchBookProps> = ({ selectedBook, setSelectedBook }) => {
-  const [inputValue, setInputValue] = useState(''); // Estado para manejar el valor del input
+  const [inputValue, setInputValue] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
-  const fetchBooks = useCallback(
-    debounce(async (inputValue: string, callback: (options: any[]) => void) => {
-      if (inputValue.trim().length < 5) { // 🔥 Busca desde el primer carácter
-        callback([]);
-        return;
+  const handleSearch = async () => {
+    if (!inputValue.trim()) {
+      setSearchError('Por favor ingrese un código');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError('');
+    
+    try {
+      const response: ApiResponse = await getBook(inputValue);
+      if (response.estado === 200 && Array.isArray(response.data) && response.data.length > 0) {
+        setSelectedBook(response.data[0]);
+      } else {
+        setSearchError('No se encontraron libros con ese código');
+        setSelectedBook(null);
       }
-
-      try {
-        const response: ApiResponse = await getBook(inputValue);
-        if (response.estado === 200 && Array.isArray(response.data)) {
-          const formattedOptions = response.data.map((book: Book) => ({
-            value: book.codigoproducto,
-            label: `${book.titulo} - ${book.serie}`,
-            bookData: book,
-          }));
-          callback(formattedOptions);
-        } else {
-          callback([]);
-        }
-      } catch (error) {
-        console.error("Error fetching books:", error);
-        callback([]);
-      }
-    }, 500),
-    []
-  );
-
-  const loadOptions = (inputValue: string, callback: (options: any[]) => void) => {
-    fetchBooks(inputValue, callback);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+      setSearchError('Error al buscar el libro');
+      setSelectedBook(null);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  const customStyles = {
-    control: (provided: any) => ({
-      ...provided,
-      textTransform: 'uppercase',
-    }),
-    input: (provided: any) => ({
-      ...provided,
-      textTransform: 'uppercase',
-    }),
-    option: (provided: any) => ({
-      ...provided,
-      textTransform: 'uppercase',
-    }),
-    placeholder: (provided: any) => ({
-      ...provided,
-      textTransform: 'uppercase',
-    }),
-    singleValue: (provided: any) => ({
-      ...provided,
-      textTransform: 'uppercase',
-    }),
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   return (
     <div>
-      <AsyncSelect
-        loadOptions={loadOptions}
-        defaultOptions
-        placeholder="Digitar el código del libro..."
-        noOptionsMessage={() => "NO SE ENCONTRARON CÓDIGOS RELACIONADOS"}
-        isClearable
-        getOptionValue={(option) => option.value}
-        onChange={(selectedOption) => setSelectedBook(selectedOption?.bookData || null)}
-        styles={customStyles} // Aplicamos los estilos personalizados
-        inputValue={inputValue}
-        onInputChange={(value) => setInputValue(value.toUpperCase())}
-        formatOptionLabel={(option) => option.label.toUpperCase()}
-      />
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+        <TextField
+          fullWidth
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value.toUpperCase())}
+          onKeyPress={handleKeyPress}
+          placeholder="Digitar el código del libro"
+          error={!!searchError}
+          helperText={searchError}
+          sx={{
+            '& .MuiInputBase-input': {
+              textTransform: 'uppercase'
+            }
+          }}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSearch}
+          disabled={isSearching}
+          sx={{ height: '56px' }}
+        >
+          {isSearching ? 'Buscando...' : 'Buscar'}
+        </Button>
+      </Box>
       
       {selectedBook && (
         <div style={{ marginTop: '10px' }}>
