@@ -34,13 +34,15 @@ interface NivelEducativo {
 }
 
 interface Estudiante {
+  id: string;
   nombre: string;
-  periodo: string;
-  ciclo: string;
+  periodo: any;
+  ciclo: any;
 }
 
 interface ApiResponse<T> {
   estado: number;
+  mensaje?: string;
   data: T[];
 }
 
@@ -85,18 +87,19 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
   const [nivelEducativo, setNivelEducativo] = useState<NivelEducativo[]>([]);
   const [studentFound, setStudentFound] = useState<boolean>(false);
   const [showAlert, setShowAlert] = useState<boolean>(false);
+  const [eshabilitadoCicloPeriodo, setEsHabilitadoCicloPeriodo] = useState<boolean>(false);
+  // Determina si el estudiante tiene datos completos de institución y ciclo
+  const hasCompleteSchoolData = Boolean(unidadEducativa) && Boolean(ciclo) && 
+                              unidadEducativa !== "{}" && ciclo !== "{}";
 
   // Carga datos institucionales
   const fetchInstitutionalData = useCallback(async (): Promise<void> => {
     try {
-      const [unitData, nivelData] = await Promise.all<[
-        Promise<ApiResponse<Institucion>>,
-        Promise<ApiResponse<NivelEducativo>>
-      ]>([
+      const [unitData, nivelData] = await Promise.all([
         getUnitEducation(),
         getNivelEducativo()
       ]);
-      
+
       setUnidadesEducativas(unitData?.data || []);
       setNivelEducativo(nivelData?.data || []);
     } catch (error) {
@@ -119,16 +122,32 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
       if (response?.estado === 202 && response.data?.length > 0) {
         const student = response.data[0];
         setNombreEstudiante(student.nombre || "");
-        setUnidadEducativa(student.periodo || "");
-        setCiclo(student.ciclo || "");
+        
+        // Verificar si periodo y ciclo tienen datos válidos
+        const periodoValido = student.periodo && student.periodo !== "{}" && 
+                            (typeof student.periodo === 'string' || Object.keys(student.periodo).length > 0);
+        const cicloValido = student.ciclo && student.ciclo !== "{}" && 
+                          (typeof student.ciclo === 'string' || Object.keys(student.ciclo).length > 0);
+        
+        setUnidadEducativa(periodoValido ? String(student.periodo) : "");
+        setCiclo(cicloValido ? String(student.ciclo) : "");
+        
         setStudentFound(true);
         setShowAlert(true);
-        setAcceptData(true);
+        setAcceptData(periodoValido && cicloValido);
         setNoExisteUniEdu(false);
         onStudentFound?.();
+
+
+        if (!periodoValido || !cicloValido) {
+          toast.warn("Complete los datos de institución y ciclo/nivel");
+          
+        }
       } else {
-        toast.warn("Estudiante no encontrado. Complete los datos manualmente.");
+        toast.warn("Estudiante no encontrado. Complete todos los datos.");
+        setEsHabilitadoCicloPeriodo(false)
         setStudentFound(false);
+        setAcceptData(false);
       }
     } catch (error) {
       toast.error("Error al buscar estudiante");
@@ -137,12 +156,12 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
       setLoading(false);
     }
   }, [
-    cedula, 
-    setNombreEstudiante, 
-    setUnidadEducativa, 
-    setCiclo, 
-    setAcceptData, 
-    setNoExisteUniEdu, 
+    cedula,
+    setNombreEstudiante,
+    setUnidadEducativa,
+    setCiclo,
+    setAcceptData,
+    setNoExisteUniEdu,
     onStudentFound
   ]);
 
@@ -160,7 +179,18 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
     setCiclo("");
     setAcceptData(false);
     setStudentFound(false);
+    setNoExisteUniEdu(false);
+    setShowAlert(false);
   };
+
+  // Efecto para validar cuando los datos están completos
+  useEffect(() => {
+    if (!studentFound && nombreEstudiante && unidadEducativa && ciclo) {
+      setAcceptData(true);
+    } else if (studentFound && !hasCompleteSchoolData) {
+      setAcceptData(false);
+    }
+  }, [nombreEstudiante, unidadEducativa, ciclo, studentFound, hasCompleteSchoolData, setAcceptData]);
 
   // Efecto para carga inicial
   useEffect(() => {
@@ -173,6 +203,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
         Datos del Estudiante
       </Typography>
 
+      {/* Alerta cuando se encuentra estudiante */}
       <Collapse in={showAlert && studentFound}>
         <Alert
           severity="success"
@@ -191,6 +222,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
         </Alert>
       </Collapse>
 
+      {/* Campo de cédula */}
       <Box display="flex" alignItems="center" sx={{ mt: 2 }}>
         <TextField
           label="Número de Cédula"
@@ -238,109 +270,126 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
         )}
       </Box>
 
-      <Collapse in={!studentFound || !showAlert}>
-        <Box>
+      {/* Campos que se muestran SOLO si no tiene datos completos */}
+      <Collapse in={!studentFound || !hasCompleteSchoolData}>
+        {studentFound && (
           <TextField
             label="Nombre del Estudiante"
             variant="outlined"
             fullWidth
             value={nombreEstudiante}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-              setNombreEstudiante(e.target.value.toUpperCase())
-            }
             sx={{ mt: 2 }}
-            disabled={studentFound}
-            aria-label="nombre-estudiante"
+            disabled
+            aria-label="nombre-estudiante-disabled"
           />
+        )}
 
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={noExisteUniEdu}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                  setNoExisteUniEdu(e.target.checked)
+        {(!studentFound || !hasCompleteSchoolData) && (
+          <>
+            {!studentFound && (
+              <TextField
+                label="Nombre del Estudiante"
+                variant="outlined"
+                fullWidth
+                value={nombreEstudiante}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNombreEstudiante(e.target.value.toUpperCase())
                 }
-                color="primary"
-                disabled={studentFound || disabledNoUniEducativa}
+                sx={{ mt: 2 }}
+                aria-label="nombre-estudiante"
               />
-            }
-            label="No encontré mi Unidad Educativa"
-            sx={{ mt: 2, display: 'block' }}
-          />
+            )}
 
-          {noExisteUniEdu ? (
-            <TextField
-              label="Nombre de la Institución"
-              variant="outlined"
-              fullWidth
-              value={unidadEducativa}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                setUnidadEducativa(e.target.value.toUpperCase())
-              }
-              sx={{ mt: 2 }}
-              disabled={studentFound || disabledNoUniEducativa}
-              aria-label="nombre-institucion"
-            />
-          ) : (
-            <Autocomplete
-              options={unidadesEducativas}
-              getOptionLabel={(option: Institucion) => option.descripcion || ''}
-              value={unidadesEducativas.find((item: Institucion) => 
-                item.id.toString() === unidadEducativa) || null}
-              onChange={(
-                _: React.SyntheticEvent, 
-                newValue: Institucion | null
-              ) => {
-                setUnidadEducativa(newValue?.id?.toString() || '');
-              }}
-              renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  label="Unidad Educativa" 
-                  sx={{ mt: 2 }} 
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={noExisteUniEdu}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setNoExisteUniEdu(e.target.checked)
+                  }
+                  color="primary"
+                  disabled={eshabilitadoCicloPeriodo}
                 />
-              )}
-              disabled={studentFound}
-              fullWidth
-              aria-label="unidad-educativa"
-            />
-          )}
-
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Ciclo/Nivel</InputLabel>
-            <Select
-              value={ciclo}
-              onChange={(e: any) => 
-                setCiclo(e.target.value as string)
               }
-              label="Ciclo/Nivel"
-              disabled={studentFound}
-              aria-label="ciclo-nivel"
-            >
-              {nivelEducativo.map((item: NivelEducativo) => (
-                <MenuItem key={item.id} value={item.id}>
-                  {item.descripcion}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              label="No encontré mi Unidad Educativa"
+              sx={{ mt: 2, display: 'block' }}
+            />
 
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={acceptData}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                  setAcceptData(e.target.checked)
+            {noExisteUniEdu ? (
+              <TextField
+                label="Nombre de la Institución"
+                variant="outlined"
+                fullWidth
+                value={unidadEducativa}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setUnidadEducativa(e.target.value.toUpperCase())
                 }
-                color="primary"
-                disabled={studentFound || disableTerminoCondiciones}
+                sx={{ mt: 2 }}
+                disabled={studentFound || disabledNoUniEducativa}
+                aria-label="nombre-institucion"
               />
-            }
-            label="Acepto el uso de mis datos personales"
-            sx={{ mt: 2, display: 'block' }}
-          />
-        </Box>
+            ) : (
+              <Autocomplete
+                options={unidadesEducativas}
+                getOptionLabel={(option: Institucion) => option.descripcion || ''}
+                value={unidadesEducativas.find((item: Institucion) =>
+                  item.id.toString() === unidadEducativa) || null}
+                onChange={(
+                  _: React.SyntheticEvent,
+                  newValue: Institucion | null
+                ) => {
+                  setUnidadEducativa(newValue?.id?.toString() || '');
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Unidad Educativa"
+                    sx={{ mt: 2 }}
+                    aria-label="unidad-educativa"
+                  />
+                )}
+                disabled={eshabilitadoCicloPeriodo}
+                fullWidth
+              />
+            )}
+
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Ciclo/Nivel</InputLabel>
+              <Select
+                value={ciclo}
+                onChange={(e: any) =>
+                  setCiclo(e.target.value as string)
+                }
+                label="Ciclo/Nivel"
+                disabled={eshabilitadoCicloPeriodo}
+                aria-label="ciclo-nivel"
+              >
+                {nivelEducativo.map((item: NivelEducativo) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.descripcion}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </>
+        )}
       </Collapse>
+
+      {/* Checkbox de aceptación - siempre visible */}
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={acceptData}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setAcceptData(e.target.checked)
+            }
+            color="primary"
+            disabled={eshabilitadoCicloPeriodo || studentFound}
+          />
+        }
+        label="Acepto el uso de mis datos personales"
+        sx={{ mt: 2, display: 'block', marginLeft: '2px' }}
+      />
     </Box>
   );
 };

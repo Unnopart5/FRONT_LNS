@@ -30,7 +30,7 @@ const SearchBook: React.FC<SearchBookProps> = ({ selectedBook, setSelectedBook }
       if (response.estado === 200 && Array.isArray(response.data) && response.data.length > 0) {
         setSelectedBook(response.data[0]);
       } else {
-        setSearchError('No se encontraron libros con ese código');
+        setSearchError(response.mensaje);
         setSelectedBook(null);
       }
     } catch (error) {
