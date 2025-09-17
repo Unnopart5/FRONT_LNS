@@ -283,6 +283,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
                   renderInput={(params) => (
                     <TextField {...params} label="Unidad Educativa" sx={{ mt: 2 }} />
                   )}
+                  
                   fullWidth
                   disabled={disabledNoUniEducativa}
                 />
