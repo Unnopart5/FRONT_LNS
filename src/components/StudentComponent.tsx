@@ -100,6 +100,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
     }
   }, []);
 
+  const [estudianteEncontrato,setEstudianteEncontrato] = useState<boolean>(false)
   // Buscar estudiante
   const fetchStudentData = useCallback(async () => {
     if (!validarCedula(cedula)) {
@@ -111,6 +112,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
       const response: ApiResponse<Estudiante> = await SEARCH_STUDENT(cedula);
 
       if (response.estado === 202 && response.data.length > 0) {
+        setEstudianteEncontrato(true);
         const student = response.data[0];
         setNombreEstudiante(student.nombre || "");
         setUnidadEducativa(student.periodo || "");
@@ -125,6 +127,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
         setNoExisteUniEdu(false);
         onStudentFound?.();
       } else {
+        setEstudianteEncontrato(false);
         toast.warn("Estudiante no encontrado. Complete los datos manualmente.");
         setStudentFound(false);
         setStudentHasFullData(false);
@@ -242,7 +245,7 @@ const StudentComponent: React.FC<StudentComponentProps> = ({
             value={nombreEstudiante}
             onChange={(e) => setNombreEstudiante(e.target.value.toUpperCase())}
             sx={{ mt: 2 }}
-            disabled
+            disabled={estudianteEncontrato}
           />
 
           {/* Unidad Educativa */}
